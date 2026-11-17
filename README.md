@@ -8,7 +8,6 @@ Deteksi gestur tangan secara **real-time** menggunakan webcam dengan **MediaPipe
 
 ```
 projek_membaca_gerakan/
-├── venv/                  # Virtual environment (sudah terinstall)
 ├── main.py                # Program utama
 ├── gesture_classifier.py  # Logika klasifikasi gestur
 ├── utils.py               # Helper functions
@@ -29,7 +28,7 @@ Tekan `Win + R`, ketik `powershell`, lalu tekan **Enter**.
 ### Langkah 2 — Masuk ke folder proyek
 
 ```powershell
-cd c:\projek_membaca_gerakan
+cd C:\projek---deteksi-gerakan-tangan_-yazid-3-main
 ```
 
 ---
@@ -40,8 +39,13 @@ cd c:\projek_membaca_gerakan
 .\venv\Scripts\python.exe main.py
 ```
 
-> ✅ Tidak perlu install Python atau aktifkan venv secara manual.
-> Python sudah tersedia di dalam folder `venv`.
+Jika folder `venv` belum tersedia, jalankan dengan Python yang sudah terpasang:
+
+```powershell
+python main.py
+```
+
+Program menggunakan webcam PC index 0 secara langsung. Pastikan kamera tidak sedang dipakai aplikasi lain dan izin kamera untuk aplikasi desktop di Windows aktif. Model MediaPipe akan diunduh otomatis saat pertama kali dijalankan.
 
 ---
 
@@ -78,6 +82,8 @@ Setelah itu **jendela kamera akan muncul otomatis**. Arahkan tangan ke webcam!
 | `Q` atau `Esc` | Keluar dari program |
 | `F` | Tampilkan / sembunyikan status jari |
 | `S` | Simpan screenshot ke folder `screenshots/` |
+
+Suara Windows membacakan gestur yang dikenali saat gestur berubah, misalnya **Thumbs Up** menjadi “jempol” dan **Closed Fist** menjadi “tutup”. Suara tidak diulang terus-menerus selama gesturnya sama.
 
 ---
 
@@ -132,16 +138,15 @@ Jangan gunakan `python main.py` saja — gunakan path lengkapnya.
 
 ---
 
-### ❌ Kamera tidak terbuka
+### ❌ Webcam tidak terbuka atau tidak mengirim video
 
 ```
-[ERROR] Tidak bisa membuka kamera index 0.
+[ERROR] Webcam terbuka tetapi tidak mengirim video.
 ```
 
-**Solusi:** Buka file `main.py` dan ubah baris ini:
+**Solusi:** Aktifkan izin kamera desktop di **Pengaturan Windows → Privasi & keamanan → Kamera**, tutup aplikasi lain yang memakai webcam, lalu coba lagi. Jika ada beberapa kamera, buka file `main.py` dan ubah:
 
 ```python
-# Baris 32 di main.py
 CAMERA_INDEX = 0   # Ganti ke 1, 2, dst. sampai kamera terbuka
 ```
 

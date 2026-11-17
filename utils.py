@@ -6,15 +6,60 @@ import cv2
 import numpy as np
 
 
-def draw_landmarks(frame, hand_landmarks, mp_hands, mp_drawing, mp_drawing_styles):
-    """Gambar landmark tangan di frame."""
-    mp_drawing.draw_landmarks(
-        frame,
-        hand_landmarks,
-        mp_hands.HAND_CONNECTIONS,
-        mp_drawing_styles.get_default_hand_landmarks_style(),
-        mp_drawing_styles.get_default_hand_connections_style()
+def draw_landmarks(frame, hand_landmarks, mp_hands=None, mp_drawing=None, mp_drawing_styles=None):
+    """Gambar landmark tangan di frame untuk API MediaPipe lama maupun baru."""
+    if mp_hands is not None and mp_drawing is not None and mp_drawing_styles is not None and hasattr(mp_hands, "HAND_CONNECTIONS"):
+        mp_drawing.draw_landmarks(
+            frame,
+            hand_landmarks,
+            mp_hands.HAND_CONNECTIONS,
+            mp_drawing_styles.get_default_hand_landmarks_style(),
+            mp_drawing_styles.get_default_hand_connections_style()
+        )
+        return
+
+    connections = None
+    if mp_hands is not None and hasattr(mp_hands, "HAND_CONNECTIONS"):
+        connections = mp_hands.HAND_CONNECTIONS
+    else:
+        try:
+            from mediapipe.tasks.python import vision
+            connections = vision.HandLandmarksConnections.HAND_CONNECTIONS
+        except Exception:
+            connections = []
+
+    h, w = frame.shape[:2]
+    if connections:
+        for connection in connections:
+            start = hand_landmarks[connection.start]
+            end = hand_landmarks[connection.end]
+            cv2.line(frame, (int(start.x * w), int(start.y * h)), (int(end.x * w), int(end.y * h)), (0, 255, 0), 2)
+
+    for landmark in hand_landmarks:
+        x = int(landmark.x * w)
+        y = int(landmark.y * h)
+        cv2.circle(frame, (x, y), 4, (255, 255, 255), -1)
+
+
+def _is_thumb_open(landmarks):
+    points = np.array([
+        [landmark.x, landmark.y, getattr(landmark, "z", 0.0)]
+        for landmark in landmarks
+    ])
+    mcp, ip, tip = points[2], points[3], points[4]
+    first_segment = mcp - ip
+    second_segment = tip - ip
+    segment_lengths = np.linalg.norm(first_segment) * np.linalg.norm(second_segment)
+    if segment_lengths == 0:
+        return False
+
+    angle_cosine = np.dot(first_segment, second_segment) / segment_lengths
+    angle = np.degrees(np.arccos(np.clip(angle_cosine, -1.0, 1.0)))
+    palm_width = np.linalg.norm(points[5] - points[17])
+    extension_from_index = (
+        np.linalg.norm(tip - points[5]) - np.linalg.norm(ip - points[5])
     )
+    return angle > 150 and extension_from_index > palm_width * 0.1
 
 
 def get_finger_states(hand_landmarks):
@@ -22,7 +67,7 @@ def get_finger_states(hand_landmarks):
     Tentukan apakah setiap jari terbuka (1) atau tertutup (0).
     Urutan: [ibu jari, telunjuk, tengah, manis, kelingking]
     """
-    landmarks = hand_landmarks.landmark
+    landmarks = getattr(hand_landmarks, "landmark", hand_landmarks)
 
     # Tip IDs untuk setiap jari
     finger_tips = [4, 8, 12, 16, 20]
@@ -31,12 +76,7 @@ def get_finger_states(hand_landmarks):
 
     finger_states = []
 
-    # Ibu jari — bandingkan posisi x (kiri vs kanan)
-    # Jika tip lebih ke kiri dari sendi MCP → terbuka (asumsi tangan kanan)
-    if landmarks[4].x < landmarks[3].x:
-        finger_states.append(1)  # terbuka
-    else:
-        finger_states.append(0)  # tertutup
+    finger_states.append(int(_is_thumb_open(landmarks)))
 
     # 4 jari lainnya — bandingkan posisi y (tip vs PIP)
     for tip_id, pip_id in zip(finger_tips[1:], finger_pip[1:]):
