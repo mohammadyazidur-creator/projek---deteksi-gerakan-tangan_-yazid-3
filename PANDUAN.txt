@@ -1,0 +1,62 @@
+# Perbaikan Deteksi Gerakan Tangan via USB
+
+## File yang diganti
+- `server_hp.py`
+- `main.py`
+- `web_mobile/index.html`
+
+File `utils.py` dan `gesture_classifier.py` tetap menggunakan file proyek Anda yang lama.
+
+## 1. Pasang dependensi
+Buka terminal VS Code di folder proyek, lalu jalankan:
+
+```powershell
+.\venv\Scripts\python.exe -m pip install aiohttp numpy opencv-python mediapipe
+```
+
+## 2. Siapkan ADB
+- Aktifkan Developer options dan USB debugging di Android.
+- Instal Android SDK Platform Tools di PC dan pastikan perintah `adb` bisa dijalankan dari terminal.
+- Sambungkan HP dengan kabel USB data, bukan kabel khusus pengisian daya.
+- Setujui dialog "Allow USB debugging" di HP.
+
+Periksa:
+```powershell
+adb devices
+```
+Status perangkat harus `device`, bukan `unauthorized`.
+
+## 3. Buat USB port forwarding
+Jalankan:
+```powershell
+adb reverse tcp:8000 tcp:8000
+adb reverse --list
+```
+
+Perintah ini membuat `localhost:8000` pada HP diteruskan ke port 8000 PC.
+
+## 4. Jalankan dua terminal VS Code
+Terminal 1:
+```powershell
+.\venv\Scripts\python.exe server_hp.py
+```
+
+Terminal 2:
+```powershell
+.\venv\Scripts\python.exe main.py
+```
+
+## 5. Buka di HP
+Buka Chrome Android:
+```text
+http://localhost:8000
+```
+Tekan **Mulai Kamera**, lalu izinkan akses kamera. Arahkan tangan ke kamera. Hasil deteksi akan tampil pada jendela OpenCV di PC.
+
+## Catatan
+- Jangan jalankan `run.bat` lama untuk alur ini jika file itu hanya menjalankan `main.py`. Jalankan server dan program Python pada dua terminal terpisah.
+- USB debugging/ADB reverse harus tetap aktif selama digunakan.
+- Jika `adb` tidak dikenali, instal Android SDK Platform Tools lalu buka ulang terminal VS Code.
+- Jika `adb devices` menampilkan `unauthorized`, cabut-pasang USB dan setujui dialog di HP.
+- Jika kamera tidak bisa dibuka, tutup aplikasi lain yang sedang memakai kamera.
+- Bila ada error import, pastikan semua perintah memakai Python dari folder `venv`.
